@@ -1,0 +1,291 @@
+# word	pos	zh	classifier	flags
+world	N	世界	个
+life	N	生活	个
+time	N	时间	段	time
+year	N	年	年	time
+day	N	天	天	time
+week	N	周	周	time
+month	N	月	个月	time
+hour	N	小时	个	time
+minute	N	分钟	分钟	time
+second	N	秒	秒	time
+moment	N	时刻	个	time
+morning	N	早上	个	time
+afternoon	N	下午	个	time
+evening	N	晚上	个	time
+night	N	夜晚	个	time
+season	N	季节	个	time
+spring	N	春天	个	time
+summer	N	夏天	个	time
+autumn	N	秋天	个	time
+winter	N	冬天	个	time
+monday	N	星期一	个	time
+tuesday	N	星期二	个	time
+wednesday	N	星期三	个	time
+thursday	N	星期四	个	time
+friday	N	星期五	个	time
+saturday	N	星期六	个	time
+sunday	N	星期日	个	time
+people	N	人	个	human
+person	N	人	个	human
+man	N	男人	个	human
+woman	N	女人	个	human
+child	N	孩子	个	human
+boy	N	男孩	个	human
+girl	N	女孩	个	human
+baby	N	婴儿	个	human
+friend	N	朋友	个	human
+student	N	学生	名	human
+teacher	N	老师	位	human
+doctor	N	医生	位	human
+nurse	N	护士	位	human
+engineer	N	工程师	位	human
+worker	N	工人	名	human
+manager	N	经理	位	human
+leader	N	领导者	位	human
+writer	N	作家	位	human
+artist	N	艺术家	位	human
+singer	N	歌手	位	human
+actor	N	演员	位	human
+player	N	运动员	名	human
+parent	N	父母	位	human
+mother	N	母亲	位	human
+father	N	父亲	位	human
+brother	N	兄弟	个	human
+sister	N	姐妹	个	human
+son	N	儿子	个	human
+daughter	N	女儿	个	human
+husband	N	丈夫	个	human
+wife	N	妻子	个	human
+family	N	家庭	个	human
+group	N	群体	个
+team	N	团队	个
+government	N	政府	个
+company	N	公司	家
+school	N	学校	所	no_article
+university	N	大学	所
+college	N	学院	所
+class	N	班级	个
+office	N	办公室	间
+room	N	房间	间
+house	N	房子	栋
+home	N	家	个	no_article
+car	N	汽车	辆
+bus	N	公交车	辆
+train	N	火车	列
+plane	N	飞机	架
+bike	N	自行车	辆
+road	N	道路	条
+street	N	街道	条
+park	N	公园	座
+lake	N	湖	个
+river	N	河	条
+sea	N	海	片
+ocean	N	海洋	片
+mountain	N	山	座
+tree	N	树	棵
+flower	N	花	朵
+grass	N	草			mass
+animal	N	动物	只
+dog	N	狗	只
+cat	N	猫	只
+fox	N	狐狸	只
+bird	N	鸟	只
+fish	N	鱼	条
+apple	N	苹果	个	count
+banana	N	香蕉	根	count
+orange	N	橙子	个	count
+food	N	食物			mass
+water	N	水			mass
+air	N	空气			mass
+weather	N	天气			mass
+rain	N	雨			mass
+snow	N	雪			mass
+wind	N	风			mass
+sun	N	太阳	个
+moon	N	月亮	个
+sky	N	天空	片
+star	N	星星	颗
+cloud	N	云	朵
+fire	N	火			mass
+earth	N	地球	个
+ground	N	地面			mass
+floor	N	地板	层
+wall	N	墙	面
+door	N	门	扇
+window	N	窗户	扇
+table	N	桌子	张
+chair	N	椅子	把
+bed	N	床	张	no_article
+kitchen	N	厨房	间
+bathroom	N	浴室	间
+garden	N	花园	个
+farm	N	农场	个
+village	N	村庄	个
+town	N	城镇	个
+city	N	城市	座
+country	N	国家	个
+capital	N	首都	个
+area	N	地区	个
+region	N	区域	个
+space	N	空间			mass
+line	N	线	条
+end	N	结束	个
+beginning	N	开始	个
+side	N	边	个
+top	N	顶部	个
+bottom	N	底部	个
+center	N	中心	个
+front	N	前面	个
+back	N	后面	个
+left	N	左边	个
+right	N	右边	个
+lot	N	许多	个
+part	N	部分	个
+place	N	地方	个
+case	N	案例	个
+point	N	点	个
+number	N	数字	个
+project	N	项目	个
+offline	ADJ	离线
+online	ADJ	在线
+problem	N	问题	个
+question	N	问题	个
+answer	N	答案	个
+fact	N	事实	个
+idea	N	想法	个
+reason	N	原因	个
+example	N	例子	个
+result	N	结果	个
+chance	N	机会	个
+choice	N	选择	个
+decision	N	决定	个
+action	N	行动	个
+activity	N	活动	个
+event	N	事件	个
+accident	N	事故	起
+story	N	故事	个
+news	N	新闻			mass
+information	N	信息			mass
+message	N	消息	条
+letter	N	信	封
+word	N	单词	个
+sentence	N	句子	句
+language	N	语言	门
+english	N	英语			mass
+chinese	N	中文			mass
+history	N	历史			mass
+science	N	科学			mass
+technology	N	技术			mass
+computer	N	电脑	台
+phone	N	手机	部
+internet	N	互联网			mass
+email	N	电子邮件	封
+website	N	网站	个
+program	N	程序	个
+software	N	软件			mass
+data	N	数据			mass
+system	N	系统	个
+user	N	用户	个
+service	N	服务	项
+product	N	产品	个
+market	N	市场	个
+business	N	商业			mass
+money	N	钱			mass
+price	N	价格	个
+cost	N	成本	个
+job	N	工作	份
+work	N	工作			mass
+book	N	书	本
+storybook	N	故事书	本
+article	N	文章	篇
+paper	N	论文	篇
+page	N	页	页
+picture	N	图片	张
+photo	N	照片	张
+video	N	视频	个
+game	N	游戏	个
+sport	N	运动	项
+music	N	音乐			mass
+song	N	歌	首
+movie	N	电影	部
+film	N	电影	部
+art	N	艺术			mass
+culture	N	文化			mass
+society	N	社会			mass
+law	N	法律	条
+rule	N	规则	条
+freedom	N	自由			mass
+peace	N	和平			mass
+war	N	战争	场
+police	N	警察			mass
+army	N	军队	支
+health	N	健康			mass
+body	N	身体	个
+head	N	头	个
+face	N	脸	张
+eye	N	眼睛	只
+ear	N	耳朵	只
+nose	N	鼻子	个
+mouth	N	嘴	张
+tooth	N	牙齿	颗
+hair	N	头发			mass
+heart	N	心	颗
+mind	N	思想	个
+feeling	N	感觉	种
+love	N	爱			mass
+hope	N	希望	个
+dream	N	梦想	个
+plan	N	计划	个
+education	N	教育			mass
+experience	N	经验			mass
+research	N	研究			mass
+study	N	学习			mass
+development	N	发展			mass
+growth	N	增长			mass
+success	N	成功			mass
+failure	N	失败	次
+solution	N	解决方案	个
+effect	N	影响	个
+cause	N	原因	个
+difference	N	差异	个
+importance	N	重要性			mass
+value	N	价值	个
+quality	N	质量			mass
+safety	N	安全			mass
+risk	N	风险	个
+danger	N	危险	个
+opportunity	N	机会	个
+challenge	N	挑战	个
+goal	N	目标	个
+relationship	N	关系	种
+communication	N	交流			mass
+industry	N	工业	个
+economy	N	经济			mass
+politics	N	政治			mass
+election	N	选举	次
+president	N	总统	位	human
+court	N	法院	个
+crime	N	犯罪	起
+environment	N	环境			mass
+nature	N	自然			mass
+energy	N	能源			mass
+power	N	力量			mass
+light	N	光			mass
+heat	N	热			mass
+color	N	颜色	种
+red	N	红色			mass
+blue	N	蓝色			mass
+green	N	绿色			mass
+black	N	黑色			mass
+white	N	白色			mass
+breakfast	N	早餐	顿	no_article
+lunch	N	午餐	顿	no_article
+dinner	N	晚餐	顿	no_article
+holiday	N	假期	个
+birthday	N	生日	个
+party	N	聚会	个
+meeting	N	会议	场
+conversation	N	对话	场
+voice	N	声音	个
+sound	N	声音	个

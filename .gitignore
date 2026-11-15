@@ -7,6 +7,9 @@ venv/
 env/
 .env
 
+# 本地翻译运行时（Node + 模型，体积大，不入库）
+vendor/
+
 # 打包产物
 build/
 dist/

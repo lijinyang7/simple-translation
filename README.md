@@ -2,6 +2,8 @@
 
 一个“屏幕取词翻译”工具：读取屏幕上的文字，翻译成目标语言，再把译文悬浮显示出来。整体用 Python 实现，三部分解耦，方便分别替换后端。
 
+> 给 AI / 自动化工具看的精简导读（推荐先读）：[AI_README.md](AI_README.md)
+
 ## 整体流程
 
 屏幕读取（OCR）→ 内容翻译 → 翻译内容显示
@@ -72,10 +74,19 @@ for box in reader.read_boxes():
 
 循环运行时建议开启帧差分（`diff: true`，默认开启）：每帧只对与上一帧不同的区域重新 OCR，静态区域直接复用上一次结果。实测整屏首帧约 0.78s，画面静止后连续帧降到约 42ms；只有局部变化时仅重扫变化区域。
 
-翻译支持两种后端（`translator` 字段）：
+翻译支持三种后端（`translator` 字段）：
 
-- `demo`：演示用，不调用外部服务，默认。
+- `zhtrans`：默认。随仓库附带的离线英译中引擎（本地 MTranServer），无需联网。
+- `demo`：演示用，不调用外部服务。
 - `openai`：OpenAI 兼容接口，需提供 `OPENAI_API_KEY` 环境变量。
+
+### zhtrans 离线翻译运行时
+
+翻译引擎 `zhtrans` 的 Python 代码已随仓库附带（`zhtrans/`，纯标准库），实际翻译由本地 MTranServer 完成。Node 运行时与英译中模型约 380MB，放在 `vendor/`，该目录不入库。
+
+- 若 `vendor/` 存在，首次翻译会自动启动本地服务（首次约 15 秒加载模型，之后很快）。
+- 也可以设置环境变量 `ZHTRANS_VENDOR` 指向已有的 `vendor` 目录。
+- 无需联网，也不需要单独安装 Node。
 
 显示支持两种后端（`display` 字段）：
 
@@ -91,7 +102,7 @@ for box in reader.read_boxes():
 | `source_lang` | 源语言，`auto` 表示自动 | `auto` |
 | `target_lang` | 目标语言 | `zh` |
 | `reader` | 屏幕读取后端 | `demo` |
-| `translator` | 翻译后端 | `demo` |
+| `translator` | 翻译后端 | `zhtrans` |
 | `display` | 显示后端 | `console` |
 | `interval` | 循环读取间隔（秒） | `2.0` |
 | `region` | 截图区域 `[left, top, width, height]`，`null` 为全屏 | `null` |

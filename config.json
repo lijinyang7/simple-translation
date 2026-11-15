@@ -2,7 +2,7 @@
   "source_lang": "auto",
   "target_lang": "zh",
   "reader": "demo",
-  "translator": "demo",
+  "translator": "zhtrans",
   "display": "console",
   "interval": 2.0,
   "region": null,

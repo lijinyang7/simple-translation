@@ -9,3 +9,5 @@ pytesseract>=0.3.10             # 另需安装 Tesseract-OCR 二进制（Windows
 
 # 可选：翻译后端
 # openai>=1.40.0               # 调用 OpenAI 兼容接口
+
+# 翻译引擎 zhtrans 已随仓库附带（纯标准库）；本地 MTranServer 运行时见 README（vendor/ 不入库）

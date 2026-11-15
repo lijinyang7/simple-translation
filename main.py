@@ -14,7 +14,12 @@ from simple_translation.screen_reader import (
     ScreenReader,
     TesseractScreenReader,
 )
-from simple_translation.translator import DemoTranslator, OpenAiTranslator, Translator
+from simple_translation.translator import (
+    DemoTranslator,
+    OpenAiTranslator,
+    Translator,
+    ZhtransTranslator,
+)
 
 
 def build_reader(
@@ -36,6 +41,8 @@ def build_reader(
 def build_translator(kind: str, model: str) -> Translator:
     if kind == "demo":
         return DemoTranslator()
+    if kind == "zhtrans":
+        return ZhtransTranslator()
     if kind == "openai":
         return OpenAiTranslator(model=model)
     raise ValueError(f"未知的翻译后端：{kind}")
@@ -54,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", help="配置文件路径，默认读取项目下的 config.json")
     parser.add_argument("--demo", action="store_true", help="使用演示后端（不访问屏幕、不调用外部服务）")
     parser.add_argument("--reader", choices=["demo", "tesseract", "rapidocr"], help="覆盖读取后端")
-    parser.add_argument("--translator", choices=["demo", "openai"], help="覆盖翻译后端")
+    parser.add_argument("--translator", choices=["demo", "zhtrans", "openai"], help="覆盖翻译后端")
     parser.add_argument("--display", choices=["console", "overlay"], help="覆盖显示后端")
     parser.add_argument("--source", help="源语言，默认 auto")
     parser.add_argument("--target", help="目标语言，默认 zh")

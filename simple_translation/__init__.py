@@ -9,7 +9,7 @@ from .screen_reader import (
     ScreenReader,
     TesseractScreenReader,
 )
-from .translator import DemoTranslator, OpenAiTranslator, Translator
+from .translator import DemoTranslator, OpenAiTranslator, Translator, ZhtransTranslator
 
 __version__ = "0.1.0"
 
@@ -25,6 +25,7 @@ __all__ = [
     "Translator",
     "DemoTranslator",
     "OpenAiTranslator",
+    "ZhtransTranslator",
     "Display",
     "ConsoleDisplay",
     "TkOverlayDisplay",
