@@ -1,0 +1,10 @@
+{
+  "source_lang": "auto",
+  "target_lang": "zh",
+  "reader": "demo",
+  "translator": "demo",
+  "display": "console",
+  "interval": 2.0,
+  "region": null,
+  "openai_model": "gpt-4o-mini"
+}
