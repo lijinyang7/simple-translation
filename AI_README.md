@@ -17,7 +17,10 @@
 
 | 文件 | 职责 | 关键符号 |
 | --- | --- | --- |
-| `main.py` | CLI 入口，解析参数、组装三部分 | `main()`, `build_reader()`, `build_translator()`, `build_display()` |
+| `main.py` | CLI/UI 入口 | `main()` |
+| `simple_translation/factory.py` | 根据配置创建后端 | `build_reader()`, `build_translator()`, `build_display()` |
+| `simple_translation/ui.py` | 简洁图形界面 | `TranslationApp`, `run_ui()` |
+| `run_ui.cmd` | Windows 双击启动 UI | `python main.py --ui` |
 | `simple_translation/models.py` | 数据模型 | `ScreenRegion`, `TextBox`, `TranslationResult` |
 | `simple_translation/config.py` | 配置加载 | `AppConfig`, `load_config()`, `save_default_config()` |
 | `simple_translation/screen_reader.py` | 第一部分：截屏 + OCR + 帧差分 | `ScreenReader`, `TesseractScreenReader`, `RapidOcrScreenReader`, `DemoScreenReader` |
@@ -116,7 +119,7 @@ TranslationResult(source_text, translated_text, source_lang, target_lang)
 | --- | --- | --- |
 | `source_lang` | `"auto"` | 源语言 |
 | `target_lang` | `"zh"` | 目标语言 |
-| `reader` | `"demo"` | `demo` / `tesseract` / `rapidocr` |
+| `reader` | `"tesseract"` | `demo` / `tesseract` / `rapidocr` |
 | `translator` | `"zhtrans"` | `zhtrans` / `demo` / `openai` |
 | `display` | `"console"` | `console` / `overlay` |
 | `interval` | `2.0` | 循环间隔（秒） |
@@ -135,7 +138,7 @@ python main.py --demo --display overlay
 python main.py --reader tesseract --translator openai --display overlay
 ```
 
-参数：`--config`、`--demo`、`--reader {demo,tesseract,rapidocr}`、`--translator {demo,zhtrans,openai}`、`--display {console,overlay}`、`--source`、`--target`、`--interval`、`--once`。
+参数：`--config`、`--ui`、`--demo`、`--reader {demo,tesseract,rapidocr}`、`--translator {demo,zhtrans,openai}`、`--display {console,overlay}`、`--source`、`--target`、`--interval`、`--once`。
 
 ## 实现要点与陷阱
 

@@ -44,12 +44,20 @@ python main.py --demo
 python main.py --demo --display overlay
 ```
 
+启动图形界面：
+
+```bash
+python main.py --ui
+```
+
+也可以直接双击项目根目录的 `run_ui.cmd`。
+
 ## 三部分后端
 
 屏幕读取支持三种后端（`config.json` 的 `reader` 字段）：
 
-- `demo`：演示用，返回预设文本，默认。
-- `tesseract`：Tesseract-OCR，英文识别 + 句子级文本框。
+- `demo`：演示用，返回预设文本。
+- `tesseract`：默认。Tesseract-OCR，英文识别 + 句子级文本框。
 - `rapidocr`：RapidOCR（onnxruntime），纯 pip 安装、离线可用，推荐。
 
 ### 句子框定（Tesseract）
@@ -125,7 +133,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_runtime.ps1 -UpdateMeta
 | --- | --- | --- |
 | `source_lang` | 源语言，`auto` 表示自动 | `auto` |
 | `target_lang` | 目标语言 | `zh` |
-| `reader` | 屏幕读取后端 | `demo` |
+| `reader` | 屏幕读取后端 | `tesseract` |
 | `translator` | 翻译后端 | `zhtrans` |
 | `display` | 显示后端 | `console` |
 | `interval` | 循环读取间隔（秒） | `2.0` |

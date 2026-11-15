@@ -5,60 +5,15 @@ from __future__ import annotations
 import argparse
 
 from simple_translation.config import load_config
-from simple_translation.display import ConsoleDisplay, Display, TkOverlayDisplay
+from simple_translation.factory import build_display, build_reader, build_translator
 from simple_translation.models import ScreenRegion
 from simple_translation.pipeline import Pipeline
-from simple_translation.screen_reader import (
-    DemoScreenReader,
-    RapidOcrScreenReader,
-    ScreenReader,
-    TesseractScreenReader,
-)
-from simple_translation.translator import (
-    DemoTranslator,
-    OpenAiTranslator,
-    Translator,
-    ZhtransTranslator,
-)
-
-
-def build_reader(
-    kind: str,
-    region: ScreenRegion | None,
-    max_side: int | None = None,
-    workers: int = 0,
-    diff: bool = True,
-) -> ScreenReader:
-    if kind == "demo":
-        return DemoScreenReader()
-    if kind == "tesseract":
-        return TesseractScreenReader(region=region, max_side=max_side, workers=workers, diff=diff)
-    if kind == "rapidocr":
-        return RapidOcrScreenReader(region=region)
-    raise ValueError(f"未知的读取后端：{kind}")
-
-
-def build_translator(kind: str, model: str) -> Translator:
-    if kind == "demo":
-        return DemoTranslator()
-    if kind == "zhtrans":
-        return ZhtransTranslator()
-    if kind == "openai":
-        return OpenAiTranslator(model=model)
-    raise ValueError(f"未知的翻译后端：{kind}")
-
-
-def build_display(kind: str) -> Display:
-    if kind == "console":
-        return ConsoleDisplay()
-    if kind == "overlay":
-        return TkOverlayDisplay()
-    raise ValueError(f"未知的显示后端：{kind}")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="简单翻译：屏幕读取 → 内容翻译 → 翻译内容显示")
     parser.add_argument("--config", help="配置文件路径，默认读取项目下的 config.json")
+    parser.add_argument("--ui", action="store_true", help="启动图形界面")
     parser.add_argument("--demo", action="store_true", help="使用演示后端（不访问屏幕、不调用外部服务）")
     parser.add_argument("--reader", choices=["demo", "tesseract", "rapidocr"], help="覆盖读取后端")
     parser.add_argument("--translator", choices=["demo", "zhtrans", "openai"], help="覆盖翻译后端")
@@ -69,23 +24,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--once", action="store_true", help="只执行一次后退出")
     args = parser.parse_args(argv)
 
+    if args.ui:
+        from simple_translation.ui import run_ui
+
+        return run_ui(args.config, demo=args.demo)
+
     config = load_config(args.config)
 
-    if args.demo:
-        reader = DemoScreenReader()
-        translator = DemoTranslator()
-        display = build_display(args.display or config.display)
-    else:
-        region = ScreenRegion.from_list(config.region)
-        reader = build_reader(
-            args.reader or config.reader,
-            region,
-            config.max_side,
-            config.workers,
-            config.diff,
-        )
-        translator = build_translator(args.translator or config.translator, config.openai_model)
-        display = build_display(args.display or config.display)
+    reader_kind = "demo" if args.demo else (args.reader or config.reader)
+    translator_kind = "demo" if args.demo else (args.translator or config.translator)
+
+    reader = build_reader(
+        reader_kind,
+        ScreenRegion.from_list(config.region),
+        config.max_side,
+        config.workers,
+        config.diff,
+    )
+    translator = build_translator(translator_kind, config.openai_model)
+    display = build_display(args.display or config.display)
 
     source = args.source or config.source_lang
     target = args.target or config.target_lang

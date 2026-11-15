@@ -1,7 +1,7 @@
 {
   "source_lang": "auto",
   "target_lang": "zh",
-  "reader": "demo",
+  "reader": "tesseract",
   "translator": "zhtrans",
   "display": "console",
   "interval": 2.0,
