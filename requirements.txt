@@ -3,6 +3,7 @@ mss>=9.0.1
 Pillow>=10.0.0
 
 # OCR 后端
+tesserocr>=2.6.1                # 进程内 Tesseract，无子进程开销，速度更快（推荐）
 pytesseract>=0.3.10             # 另需安装 Tesseract-OCR 二进制（Windows 可用 winget 安装）
 # rapidocr-onnxruntime>=1.3.0  # 纯 pip 安装，离线可用，支持中英文（可替代 Tesseract）
 

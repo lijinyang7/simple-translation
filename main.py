@@ -17,11 +17,17 @@ from simple_translation.screen_reader import (
 from simple_translation.translator import DemoTranslator, OpenAiTranslator, Translator
 
 
-def build_reader(kind: str, region: ScreenRegion | None) -> ScreenReader:
+def build_reader(
+    kind: str,
+    region: ScreenRegion | None,
+    max_side: int | None = None,
+    workers: int = 0,
+    diff: bool = True,
+) -> ScreenReader:
     if kind == "demo":
         return DemoScreenReader()
     if kind == "tesseract":
-        return TesseractScreenReader(region=region)
+        return TesseractScreenReader(region=region, max_side=max_side, workers=workers, diff=diff)
     if kind == "rapidocr":
         return RapidOcrScreenReader(region=region)
     raise ValueError(f"未知的读取后端：{kind}")
@@ -64,7 +70,13 @@ def main(argv: list[str] | None = None) -> int:
         display = build_display(args.display or config.display)
     else:
         region = ScreenRegion.from_list(config.region)
-        reader = build_reader(args.reader or config.reader, region)
+        reader = build_reader(
+            args.reader or config.reader,
+            region,
+            config.max_side,
+            config.workers,
+            config.diff,
+        )
         translator = build_translator(args.translator or config.translator, config.openai_model)
         display = build_display(args.display or config.display)
 

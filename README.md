@@ -64,6 +64,14 @@ for box in reader.read_boxes():
 
 `lang` 默认 `eng`；`psm` 可传 Tesseract 页面分割模式（例如稀疏文本用 `11`）；`min_conf` 用于过滤低置信度词。`read()` 仍返回不带坐标的纯文本。
 
+### 性能
+
+识别优先走进程内的 `tesserocr`（无子进程启动开销），不可用时自动回退到 `pytesseract`。实测 519×391 的截图单次 OCR 约 113ms，比 pytesseract 的约 269ms 快一倍以上。对于整屏/大图，可设置 `max_side`：当截图最长边超过该值时先等比缩小再识别，坐标会自动映射回原图。例如 `max_side=260` 时同一张图约 60ms（词数从 53 略降到 51）。注意缩得太小会降低小字识别率，实际使用中更推荐配合 `region` 只截取关心的区域。
+
+整块 2560×1440 屏幕单次识别约 1.1–1.6s。设置 `workers` 后会把屏幕切成横向条带并行识别（`0` 为自动按 CPU 核数，也可手动设 `8` 等），实测约 0.45s、约 240 个词，且保持原分辨率、不损失小字。若还要压到 200ms 以内，只能再组合 `max_side` 缩小（如 `max_side=1536`），代价是小字识别率明显下降；真实使用仍推荐用 `region` 限定关注区域。
+
+循环运行时建议开启帧差分（`diff: true`，默认开启）：每帧只对与上一帧不同的区域重新 OCR，静态区域直接复用上一次结果。实测整屏首帧约 0.78s，画面静止后连续帧降到约 42ms；只有局部变化时仅重扫变化区域。
+
 翻译支持两种后端（`translator` 字段）：
 
 - `demo`：演示用，不调用外部服务，默认。
@@ -87,6 +95,9 @@ for box in reader.read_boxes():
 | `display` | 显示后端 | `console` |
 | `interval` | 循环读取间隔（秒） | `2.0` |
 | `region` | 截图区域 `[left, top, width, height]`，`null` 为全屏 | `null` |
+| `max_side` | OCR 前最长边上限，控制单帧耗时 | `null` |
+| `workers` | 并行 worker 数，`0` 表示大图自动并行 | `0` |
+| `diff` | 帧差分：只对变化区域重新 OCR | `true` |
 | `openai_model` | OpenAI 翻译用的模型名 | `gpt-4o-mini` |
 
 ## 安装真实后端依赖

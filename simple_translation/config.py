@@ -17,6 +17,9 @@ class AppConfig:
     display: str = "console"   # console | overlay
     interval: float = 2.0      # 循环读取间隔（秒）
     region: Optional[list[int]] = None  # [left, top, width, height]
+    max_side: Optional[int] = None  # OCR 前最长边上限，用于控制单帧耗时
+    workers: int = 0           # 并行 worker 数，0 表示大图自动并行
+    diff: bool = True          # 帧差分：只对变化区域重新 OCR
     openai_model: str = "gpt-4o-mini"
 
     @classmethod
