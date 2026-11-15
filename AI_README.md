@@ -165,6 +165,14 @@ python main.py --demo --once
 python -c "from simple_translation.screen_reader import TesseractScreenReader; print('ok')"
 ```
 
+## 运行时安装
+
+- `vendor/` 不入库（Node + MTranServer + 模型，约 380MB）。
+- `setup_runtime.ps1` 读取 `runtime.json` 的 `url` 下载 zip，校验 SHA256 后解压到 `vendor/`；也支持 `-FromPath <dir>` 从本地复制。
+- `tools/package_runtime.ps1 -UpdateMetadata` 打包本地 `vendor/` 为 `dist/simple-translation-runtime-win64.zip`，并更新 `runtime.json` 的 `archive`/`sha256`/`size`。
+- 当前运行时 Release：`https://github.com/lijinyang7/simple-translation/releases/tag/runtime-v1.0.0`。
+- 首次翻译会启动本地服务并加载模型（约 15–30s），之后连接与缓存复用。
+
 ## 性能参考（本机实测）
 
 | 场景 | 耗时 |

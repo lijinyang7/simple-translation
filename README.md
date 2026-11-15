@@ -88,6 +88,28 @@ for box in reader.read_boxes():
 - 也可以设置环境变量 `ZHTRANS_VENDOR` 指向已有的 `vendor` 目录。
 - 无需联网，也不需要单独安装 Node。
 
+#### 安装运行时
+
+新克隆项目后 `vendor/` 是空的，运行一次：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup_runtime.ps1
+```
+
+脚本会从 GitHub Release 下载运行时（约 163MB），校验 SHA256 后解压到 `vendor/`。也可以直接从本地已有的 translate 目录复制：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup_runtime.ps1 -FromPath 'C:\path\to\translate\vendor'
+```
+
+运行时已发布为 Release 附件：[runtime-v1.0.0](https://github.com/lijinyang7/simple-translation/releases/tag/runtime-v1.0.0)。发布新版本时先重新打包：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\package_runtime.ps1 -UpdateMetadata
+```
+
+然后把 `dist/simple-translation-runtime-win64.zip` 上传为 Release 附件，并把下载地址写入 `runtime.json` 的 `url`。
+
 显示支持两种后端（`display` 字段）：
 
 - `console`：终端打印，默认。
