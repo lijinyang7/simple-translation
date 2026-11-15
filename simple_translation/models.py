@@ -34,3 +34,28 @@ class TranslationResult:
     translated_text: str
     source_lang: str
     target_lang: str
+
+
+@dataclass
+class TextBox:
+    """屏幕识别出的一个文本框（句子级）。"""
+
+    text: str
+    left: int
+    top: int
+    width: int
+    height: int
+    confidence: Optional[float] = None
+
+    @property
+    def right(self) -> int:
+        return self.left + self.width
+
+    @property
+    def bottom(self) -> int:
+        return self.top + self.height
+
+    @property
+    def bbox(self) -> tuple[int, int, int, int]:
+        """返回 (left, top, right, bottom)。"""
+        return (self.left, self.top, self.right, self.bottom)

@@ -47,8 +47,22 @@ python main.py --demo --display overlay
 屏幕读取支持三种后端（`config.json` 的 `reader` 字段）：
 
 - `demo`：演示用，返回预设文本，默认。
-- `tesseract`：Tesseract-OCR，需另装 Tesseract 并加入 PATH。
+- `tesseract`：Tesseract-OCR，英文识别 + 句子级文本框。
 - `rapidocr`：RapidOCR（onnxruntime），纯 pip 安装、离线可用，推荐。
+
+### 句子框定（Tesseract）
+
+`TesseractScreenReader.read_boxes()` 会调用 Tesseract 的 `image_to_data` 拿到词级坐标，再按行合并、按句尾标点（`. ! ?`）切分成句子，返回 `TextBox` 列表：
+
+```python
+from simple_translation.screen_reader import TesseractScreenReader
+
+reader = TesseractScreenReader(lang="eng", psm=None, min_conf=0.0)
+for box in reader.read_boxes():
+    print(box.text, box.bbox, box.confidence)  # bbox=(left, top, right, bottom)
+```
+
+`lang` 默认 `eng`；`psm` 可传 Tesseract 页面分割模式（例如稀疏文本用 `11`）；`min_conf` 用于过滤低置信度词。`read()` 仍返回不带坐标的纯文本。
 
 翻译支持两种后端（`translator` 字段）：
 
