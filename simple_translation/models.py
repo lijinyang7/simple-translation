@@ -46,6 +46,8 @@ class TextBox:
     width: int
     height: int
     confidence: Optional[float] = None
+    background: Optional[tuple[int, int, int]] = None
+    foreground: Optional[tuple[int, int, int]] = None
 
     @property
     def right(self) -> int:

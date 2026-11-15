@@ -39,6 +39,10 @@ class ScreenReader(ABC):
             return []
         return [TextBox(text=text, left=0, top=0, width=0, height=0)]
 
+    def read_lines(self) -> list[TextBox]:
+        """返回行级文本框；默认退化为句子级。"""
+        return self.read_boxes()
+
 
 class DemoScreenReader(ScreenReader):
     """演示用读取器：轮流返回预设文本，不访问真实屏幕。"""
@@ -56,8 +60,8 @@ class DemoScreenReader(ScreenReader):
         return text
 
 
-def _capture_screen(region: Optional[ScreenRegion] = None):
-    """用 mss 截取屏幕，返回 PIL.Image。"""
+def _capture_screen_with_origin(region: Optional[ScreenRegion] = None):
+    """用 mss 截取屏幕，返回 (PIL.Image, (left, top))。"""
     import mss
     from PIL import Image
 
@@ -73,7 +77,14 @@ def _capture_screen(region: Optional[ScreenRegion] = None):
                 "height": region.height,
             }
         shot = sct.grab(monitor)
-        return Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
+        image = Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
+        return image, (int(monitor.get("left", 0)), int(monitor.get("top", 0)))
+
+
+def _capture_screen(region: Optional[ScreenRegion] = None):
+    """用 mss 截取屏幕，返回 PIL.Image。"""
+    image, _origin = _capture_screen_with_origin(region)
+    return image
 
 
 def _pytesseract():
@@ -129,6 +140,34 @@ def _rescale(item: dict, scale: float) -> dict:
     }
 
 
+def _sample_box_colors(image, left: int, top: int, width: int, height: int):
+    """从原图文本框附近取主色作为背景色，并按亮度选黑/白文字。"""
+    if image is None:
+        return None, None
+    from collections import Counter
+
+    pad = 3
+    x0 = max(0, left - pad)
+    y0 = max(0, top - pad)
+    x1 = min(image.width, left + width + pad)
+    y1 = min(image.height, top + height + pad)
+    if x1 <= x0 or y1 <= y0:
+        return None, None
+
+    pixels = list(image.crop((x0, y0, x1, y1)).convert("RGB").getdata())
+    if not pixels:
+        return None, None
+    counter = Counter((r // 16, g // 16, b // 16) for r, g, b in pixels)
+    dominant = counter.most_common(1)[0][0]
+    matching = [p for p in pixels if (p[0] // 16, p[1] // 16, p[2] // 16) == dominant]
+    background = tuple(
+        sum(pixel[i] for pixel in matching) // len(matching) for i in range(3)
+    )
+    luminance = 0.299 * background[0] + 0.587 * background[1] + 0.114 * background[2]
+    foreground = (0, 0, 0) if luminance > 140 else (255, 255, 255)
+    return background, foreground
+
+
 class TesseractScreenReader(ScreenReader):
     """基于 Tesseract 的英文读取器。
 
@@ -164,6 +203,8 @@ class TesseractScreenReader(ScreenReader):
         self._prev_thumb = None
         self._cache_words = []
         self._cache_lines = []
+        self.last_origin = (0, 0)
+        self._last_image = None
 
     # ---- 截图 / 缩放 ----
     def _resize_for_ocr(self, image):
@@ -461,7 +502,9 @@ class TesseractScreenReader(ScreenReader):
 
     # ---- 对外读取（含差分缓存） ----
     def _read_full(self):
-        image = _capture_screen(self.region)
+        image, origin = _capture_screen_with_origin(self.region)
+        self.last_origin = origin
+        self._last_image = image
 
         if not self.diff:
             resized, scale = self._resize_for_ocr(image)
@@ -519,6 +562,32 @@ class TesseractScreenReader(ScreenReader):
     def read_boxes(self) -> list[TextBox]:
         _, lines = self._read_full()
         return _merge_lines_into_sentences(lines)
+
+    def read_lines(self) -> list[TextBox]:
+        """返回行级文本框，用于按原文位置覆盖显示。"""
+        _, lines = self._read_full()
+        boxes = []
+        for line in lines:
+            background, foreground = _sample_box_colors(
+                self._last_image,
+                line["left"],
+                line["top"],
+                line["width"],
+                line["height"],
+            )
+            boxes.append(
+                TextBox(
+                    text=line["text"],
+                    left=line["left"],
+                    top=line["top"],
+                    width=line["width"],
+                    height=line["height"],
+                    confidence=round(line["confidence"], 2),
+                    background=background,
+                    foreground=foreground,
+                )
+            )
+        return boxes
 
 
 class RapidOcrScreenReader(ScreenReader):

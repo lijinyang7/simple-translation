@@ -21,6 +21,12 @@ class Display(ABC):
         """同时显示原文与译文。"""
         self.show(f"原文：{original}\n\n译文：{translation}")
 
+    def show_boxes(self, items, origin=(0, 0)) -> None:
+        """按文本框显示译文；默认退化为整体原文/译文。"""
+        original = "\n".join(box.text for box, _ in items)
+        translation = "\n".join(text for _, text in items)
+        self.show_pair(original, translation)
+
     def clear(self) -> None:
         """清空显示。"""
 
@@ -36,6 +42,11 @@ def _clip(text: str, max_chars: int = 800) -> str:
     if max_chars and len(text) > max_chars:
         return text[:max_chars].rstrip() + " …"
     return text
+
+
+def _hex(rgb) -> str:
+    values = tuple(max(0, min(255, int(value))) for value in rgb)
+    return "#%02x%02x%02x" % values
 
 
 class ConsoleDisplay(Display):
@@ -60,6 +71,98 @@ class ConsoleDisplay(Display):
 
     def close(self) -> None:
         pass
+
+
+class CoverOverlayManager:
+    """在屏幕上原文位置创建/更新译文覆盖窗。"""
+
+    def __init__(self, master, show_close: bool = False, on_close=None):
+        import tkinter as tk
+
+        self._tk = tk
+        self.master = master
+        self._windows = []
+        self._close_window = None
+        if show_close and on_close is not None:
+            handle = tk.Toplevel(master)
+            handle.overrideredirect(True)
+            handle.attributes("-topmost", True)
+            handle.configure(bg="#1e1e1e")
+            label = tk.Label(
+                handle,
+                text="×",
+                bg="#1e1e1e",
+                fg="#ffffff",
+                font=("Segoe UI", 13, "bold"),
+                padx=8,
+                pady=1,
+                cursor="hand2",
+            )
+            label.pack()
+            label.bind("<Button-1>", lambda _event: on_close())
+            handle.geometry("+%d+%d" % (handle.winfo_screenwidth() - 40, 8))
+            self._close_window = handle
+
+    def show(self, items, origin=(0, 0)) -> None:
+        tk = self._tk
+        ox, oy = origin
+        for index, (box, text) in enumerate(items):
+            background = getattr(box, "background", None) or (30, 30, 30)
+            foreground = getattr(box, "foreground", None) or (255, 255, 255)
+            bg_hex = _hex(background)
+            fg_hex = _hex(foreground)
+            if index < len(self._windows):
+                top, label = self._windows[index]
+            else:
+                top = tk.Toplevel(self.master)
+                top.overrideredirect(True)
+                top.attributes("-topmost", True)
+                top.attributes("-alpha", 1.0)
+                top.configure(bg=bg_hex)
+                label = tk.Label(
+                    top,
+                    bg=bg_hex,
+                    fg=fg_hex,
+                    justify="left",
+                    anchor="w",
+                    padx=4,
+                    pady=1,
+                )
+                label.pack(fill="both", expand=True)
+                self._windows.append((top, label))
+
+            font_size = max(9, min(16, int(box.height * 0.65)))
+            width = max(int(box.width), 80)
+            top.configure(bg=bg_hex)
+            label.configure(
+                text=text,
+                bg=bg_hex,
+                fg=fg_hex,
+                font=("Microsoft YaHei UI", font_size),
+                wraplength=max(width - 8, 80),
+            )
+            top.update_idletasks()
+            req_w = max(width, top.winfo_reqwidth())
+            req_h = max(max(int(box.height), 22), top.winfo_reqheight())
+            top.geometry(
+                f"{req_w}x{req_h}+{int(ox + box.left)}+{int(oy + box.top)}"
+            )
+            top.lift()
+
+        for top, _label in self._windows[len(items):]:
+            top.destroy()
+        del self._windows[len(items):]
+
+    def clear(self) -> None:
+        for top, _label in self._windows:
+            top.destroy()
+        self._windows = []
+
+    def close(self) -> None:
+        self.clear()
+        if self._close_window is not None:
+            self._close_window.destroy()
+            self._close_window = None
 
 
 class TkOverlayDisplay(Display):
@@ -260,6 +363,92 @@ class TkOverlayDisplay(Display):
     def clear(self) -> None:
         if self._thread is not None and self._thread.is_alive():
             self._queue.put(("clear", "", ""))
+
+    def wait(self) -> None:
+        if self._thread is not None:
+            self._thread.join()
+
+    def close(self) -> None:
+        if self._thread is None:
+            return
+        self._queue.put(self._SENTINEL)
+        self._thread.join(timeout=3)
+        self._thread = None
+
+
+class TkCoverDisplay(Display):
+    """按原文行位置覆盖显示的 tkinter 后端（独立线程）。"""
+
+    prefers_boxes = True
+    _SENTINEL = object()
+
+    def __init__(self):
+        self._queue: queue.Queue = queue.Queue()
+        self._thread: threading.Thread | None = None
+        self._root = None
+        self._manager = None
+
+    def _ensure_thread(self) -> None:
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._thread = threading.Thread(target=self._run, name="tk-cover", daemon=True)
+        self._thread.start()
+
+    def _run(self) -> None:
+        import warnings
+
+        warnings.filterwarnings("ignore", message=".*Tcl interpreter is leaked.*")
+        try:
+            import tkinter as tk
+        except ImportError:
+            print("[display] tkinter 不可用，无法显示覆盖层。")
+            return
+
+        root = tk.Tk()
+        root.withdraw()
+        self._root = root
+        self._manager = CoverOverlayManager(
+            root, show_close=True, on_close=root.destroy
+        )
+
+        def pump() -> None:
+            try:
+                while True:
+                    item = self._queue.get_nowait()
+                    if item is self._SENTINEL:
+                        root.destroy()
+                        return
+                    kind, data, origin = item
+                    if kind == "boxes":
+                        self._manager.show(data, origin)
+                    elif kind == "clear":
+                        self._manager.clear()
+            except queue.Empty:
+                pass
+            try:
+                root.after(60, pump)
+            except Exception:
+                pass
+
+        root.after(60, pump)
+        root.mainloop()
+        self._manager = None
+        self._root = None
+        try:
+            tk._default_root = None
+        except Exception:
+            pass
+
+    def show(self, text: str) -> None:
+        pass
+
+    def show_boxes(self, items, origin=(0, 0)) -> None:
+        self._ensure_thread()
+        self._queue.put(("boxes", items, origin))
+
+    def clear(self) -> None:
+        if self._thread is not None and self._thread.is_alive():
+            self._queue.put(("clear", None, (0, 0)))
 
     def wait(self) -> None:
         if self._thread is not None:

@@ -20,6 +20,7 @@
 | `main.py` | CLI/UI 入口 | `main()` |
 | `simple_translation/factory.py` | 根据配置创建后端 | `build_reader()`, `build_translator()`, `build_display()` |
 | `simple_translation/ui.py` | 简洁图形界面 | `TranslationApp`, `run_ui()` |
+| `simple_translation/hotkey.py` | Windows 全局快捷键 | `GlobalHotkey`, `parse_hotkey()` |
 | `run_ui.cmd` | Windows 双击启动 UI | `python main.py --ui` |
 | `simple_translation/models.py` | 数据模型 | `ScreenRegion`, `TextBox`, `TranslationResult` |
 | `simple_translation/config.py` | 配置加载 | `AppConfig`, `load_config()`, `save_default_config()` |
@@ -75,6 +76,7 @@ class Translator(ABC):
 class Display(ABC):
     def show(self, text: str) -> None: ...
     def show_pair(self, original: str, translation: str) -> None: ...  # 默认把两者拼给 show()
+    def show_boxes(self, items, origin=(0, 0)) -> None: ...            # items=[(TextBox, 译文)]
     def clear(self) -> None: ...
     def wait(self) -> None: ...   # 有窗口的后端阻塞到窗口关闭
     def close(self) -> None: ...
@@ -82,6 +84,8 @@ class Display(ABC):
 
 - `ConsoleDisplay`：终端同时打印原文与译文。
 - `TkOverlayDisplay(title="简单翻译", font=None, corner="top-right", alpha=0.92, max_chars=800, width=640)`：tkinter 无边框、置顶、半透明双语窗口，可拖动、点 `×` 关闭。
+- `TkCoverDisplay`：按原文行框位置创建覆盖窗，把译文直接盖在原文上；`prefers_boxes=True`，`Pipeline.run()` 会自动走 `run_boxes_once()`。
+- `CoverOverlayManager`：覆盖窗管理器，UI 和 `TkCoverDisplay` 共用；`show(items, origin)` / `clear()` / `close()`。
 
 ### 流程
 
@@ -99,7 +103,7 @@ main.main()
   → Pipeline.run(interval, once)
       → reader.read()            # 屏幕读取（TesseractScreenReader 内部含差分缓存）
       → translator.translate()   # 内容翻译
-      → display.show_pair(original, translated)   # 原文 + 译文显示
+      → display.show_boxes(items, origin)         # 原位覆盖（或 show_pair 整体显示）
 ```
 
 ## 数据结构
@@ -127,6 +131,7 @@ TranslationResult(source_text, translated_text, source_lang, target_lang)
 | `max_side` | `null` | OCR 前最长边上限，用于控制耗时 |
 | `workers` | `0` | 并行 worker 数；`0` 表示大图自动 |
 | `diff` | `true` | 帧差分：只对变化区域重新 OCR |
+| `hotkey` | `"F8"` | 全局快捷键，开始/结束翻译 |
 | `openai_model` | `"gpt-4o-mini"` | OpenAI 翻译模型名 |
 
 ## CLI
@@ -151,6 +156,7 @@ python main.py --reader tesseract --translator openai --display overlay
 - 句子分组规则：把连续行合并，直到某行以 `.` `!` `?` 结尾。界面文字通常没有句尾标点，因此可能合并成一个很大的框——这是已知行为，不是 bug。
 - `RapidOcrScreenReader` 是独立后端，只实现 `read()`；在部分机器上比 Tesseract 慢，默认不启用。
 - `zhtrans/` 是随仓库附带的纯标准库英译中引擎；真正翻译由本地 MTranServer 完成。
+- `GlobalHotkey` 用 Windows `RegisterHotKey` 注册系统级热键；回调只向 UI 队列投递事件，Tk 操作始终留在主线程。UI 收到后切换开始/停止，默认 `F8`。
 - `vendor/`（Node 运行时 + 英译中模型，约 380MB）不入库；默认找项目根目录下的 `vendor/`，也可用 `ZHTRANS_VENDOR` 环境变量指向已有目录。
 - 首次 `ZhtransTranslator.translate()` 会启动本地服务并加载模型（约 15s），之后复用连接/词典/缓存，通常 8–200ms。
 - Windows 下 `tesserocr` 需要 tessdata：代码会依次查 `TESSDATA_PREFIX`、`%ProgramFiles%\Tesseract-OCR\tessdata`。

@@ -52,6 +52,8 @@ python main.py --ui
 
 也可以直接双击项目根目录的 `run_ui.cmd`。
 
+界面启动后会注册全局快捷键 **F8**，在任意窗口下按下即可开始或结束连续翻译；可在 `config.json` 的 `hotkey` 字段改成其他组合键（如 `Ctrl+Alt+T`）。
+
 ## 三部分后端
 
 屏幕读取支持三种后端（`config.json` 的 `reader` 字段）：
@@ -118,12 +120,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_runtime.ps1 -UpdateMeta
 
 然后把 `dist/simple-translation-runtime-win64.zip` 上传为 Release 附件，并把下载地址写入 `runtime.json` 的 `url`。
 
-显示支持两种后端（`display` 字段）：
+显示支持三种后端（`display` 字段）：
 
-- `console`：终端同时打印原文与译文，默认。
-- `overlay`：tkinter 置顶半透明悬浮窗，上下分栏同时显示原文与译文；可拖动、点 `×` 关闭。
+- `console`：终端打印原文与译文，默认。
+- `overlay`：整体双语悬浮窗（原文 + 译文）。
+- `cover`：按原文行位置用译文覆盖原文；屏幕右上角有 `×` 关闭。
 
-使用 `--once --display overlay` 时窗口会保持打开，直到你点击 `×` 关闭。
+图形界面默认使用“原位覆盖”，不再整体显示原文/译文。使用 `--once --display cover` 时覆盖层会保持，直到点击右上角 `×` 或按 `Ctrl+C`。
 
 ## 配置文件
 
@@ -141,6 +144,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_runtime.ps1 -UpdateMeta
 | `max_side` | OCR 前最长边上限，控制单帧耗时 | `null` |
 | `workers` | 并行 worker 数，`0` 表示大图自动并行 | `0` |
 | `diff` | 帧差分：只对变化区域重新 OCR | `true` |
+| `hotkey` | 全局快捷键：开始/结束翻译 | `F8` |
 | `openai_model` | OpenAI 翻译用的模型名 | `gpt-4o-mini` |
 
 ## 安装真实后端依赖

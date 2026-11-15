@@ -35,16 +35,36 @@ class Pipeline:
         self.display.show_pair(text, translated)
         return translated
 
+    def run_boxes_once(self):
+        """按行级文本框翻译，并交给显示后端原位覆盖。"""
+        boxes = self.reader.read_lines()
+        boxes = [box for box in boxes if box.text.strip()]
+        if not boxes:
+            self.display.clear()
+            return []
+        items = [
+            (box, self.translator.translate(box.text, self.source_lang, self.target_lang))
+            for box in boxes
+        ]
+        origin = getattr(self.reader, "last_origin", (0, 0))
+        self.display.show_boxes(items, origin)
+        return items
+
+    def _step_once(self):
+        if getattr(self.display, "prefers_boxes", False):
+            return self.run_boxes_once()
+        return self.run_once()
+
     def run(self, interval: float = 2.0, once: bool = False) -> None:
         if once:
-            self.run_once()
+            self._step_once()
             self.display.wait()
             self.display.close()
             return
 
         try:
             while True:
-                self.run_once()
+                self._step_once()
                 time.sleep(interval)
         except KeyboardInterrupt:
             pass

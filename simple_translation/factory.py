@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .display import ConsoleDisplay, Display, TkOverlayDisplay
+from .display import ConsoleDisplay, Display, TkCoverDisplay, TkOverlayDisplay
 from .models import ScreenRegion
 from .screen_reader import (
     DemoScreenReader,
@@ -51,4 +51,6 @@ def build_display(kind: str) -> Display:
         return ConsoleDisplay()
     if kind == "overlay":
         return TkOverlayDisplay()
+    if kind == "cover":
+        return TkCoverDisplay()
     raise ValueError(f"未知的显示后端：{kind}")

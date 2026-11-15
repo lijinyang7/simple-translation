@@ -9,5 +9,6 @@
   "max_side": null,
   "workers": 0,
   "diff": true,
+  "hotkey": "F8",
   "openai_model": "gpt-4o-mini"
 }

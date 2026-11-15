@@ -17,7 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--demo", action="store_true", help="使用演示后端（不访问屏幕、不调用外部服务）")
     parser.add_argument("--reader", choices=["demo", "tesseract", "rapidocr"], help="覆盖读取后端")
     parser.add_argument("--translator", choices=["demo", "zhtrans", "openai"], help="覆盖翻译后端")
-    parser.add_argument("--display", choices=["console", "overlay"], help="覆盖显示后端")
+    parser.add_argument("--display", choices=["console", "overlay", "cover"], help="覆盖显示后端")
     parser.add_argument("--source", help="源语言，默认 auto")
     parser.add_argument("--target", help="目标语言，默认 zh")
     parser.add_argument("--interval", type=float, help="循环读取间隔（秒）")
