@@ -24,6 +24,10 @@
     └── config.py              # 配置加载
 ```
 
+## 下载
+
+Windows x64 完整便携包（源码 + UI + zhtrans + Node/模型）：[v1.0.0](https://github.com/lijinyang7/simple-translation/releases/tag/v1.0.0)
+
 ## 快速开始
 
 先跑一次演示（不访问屏幕、不调用外部服务）：
