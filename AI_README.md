@@ -71,12 +71,14 @@ class Translator(ABC):
 ```python
 class Display(ABC):
     def show(self, text: str) -> None: ...
+    def show_pair(self, original: str, translation: str) -> None: ...  # 默认把两者拼给 show()
     def clear(self) -> None: ...
+    def wait(self) -> None: ...   # 有窗口的后端阻塞到窗口关闭
     def close(self) -> None: ...
 ```
 
-- `ConsoleDisplay`：终端打印。
-- `TkOverlayDisplay(title="简单翻译", font=("Microsoft YaHei", 14), corner="top-right")`：tkinter 无边框、置顶、半透明窗口。
+- `ConsoleDisplay`：终端同时打印原文与译文。
+- `TkOverlayDisplay(title="简单翻译", font=None, corner="top-right", alpha=0.92, max_chars=800, width=640)`：tkinter 无边框、置顶、半透明双语窗口，可拖动、点 `×` 关闭。
 
 ### 流程
 
@@ -94,7 +96,7 @@ main.main()
   → Pipeline.run(interval, once)
       → reader.read()            # 屏幕读取（TesseractScreenReader 内部含差分缓存）
       → translator.translate()   # 内容翻译
-      → display.show()           # 翻译显示
+      → display.show_pair(original, translated)   # 原文 + 译文显示
 ```
 
 ## 数据结构

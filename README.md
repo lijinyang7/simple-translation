@@ -112,8 +112,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_runtime.ps1 -UpdateMeta
 
 显示支持两种后端（`display` 字段）：
 
-- `console`：终端打印，默认。
-- `overlay`：tkinter 置顶半透明悬浮窗。
+- `console`：终端同时打印原文与译文，默认。
+- `overlay`：tkinter 置顶半透明悬浮窗，上下分栏同时显示原文与译文；可拖动、点 `×` 关闭。
+
+使用 `--once --display overlay` 时窗口会保持打开，直到你点击 `×` 关闭。
 
 ## 配置文件
 

@@ -32,12 +32,13 @@ class Pipeline:
             self.display.clear()
             return ""
         translated = self.translator.translate(text, self.source_lang, self.target_lang)
-        self.display.show(translated)
+        self.display.show_pair(text, translated)
         return translated
 
     def run(self, interval: float = 2.0, once: bool = False) -> None:
         if once:
             self.run_once()
+            self.display.wait()
             self.display.close()
             return
 
