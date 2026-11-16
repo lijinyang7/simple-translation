@@ -9,6 +9,8 @@
   "max_side": null,
   "workers": 0,
   "diff": true,
+  "continuous": true,
+  "capture_fps": 5.0,
   "hotkey": "F8",
   "openai_model": "gpt-4o-mini"
 }

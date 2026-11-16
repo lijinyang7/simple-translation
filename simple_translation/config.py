@@ -20,6 +20,8 @@ class AppConfig:
     max_side: Optional[int] = None  # OCR 前最长边上限，用于控制单帧耗时
     workers: int = 0           # 并行 worker 数，0 表示大图自动并行
     diff: bool = True          # 帧差分：只对变化区域重新 OCR
+    continuous: bool = True    # 后台持续捕获屏幕
+    capture_fps: float = 5.0   # 持续捕获帧率
     hotkey: str = "F8"         # 全局快捷键：按一次翻译一次
     openai_model: str = "gpt-4o-mini"
 

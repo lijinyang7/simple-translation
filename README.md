@@ -66,6 +66,8 @@ python main.py --ui
 - `tesseract`：默认。Tesseract-OCR，英文识别 + 句子级文本框。
 - `rapidocr`：RapidOCR（onnxruntime），纯 pip 安装、离线可用，推荐。
 
+屏幕读取默认在后台按 `capture_fps`（默认 5 帧/秒）持续捕获；内部使用帧差分，只有画面变化时才重新 OCR，上层始终读取最新结果。可用 `continuous: false` 关闭后台捕获，退回按需截图。
+
 ### 句子框定（Tesseract）
 
 `TesseractScreenReader.read_boxes()` 会调用 Tesseract 的 `image_to_data` 拿到词级坐标，再按行合并、按句尾标点（`. ! ?`）切分成句子，返回 `TextBox` 列表：
@@ -79,6 +81,8 @@ for box in reader.read_boxes():
 ```
 
 `lang` 默认 `eng`；`psm` 可传 Tesseract 页面分割模式（例如稀疏文本用 `11`）；`min_conf` 用于过滤低置信度词。`read()` 仍返回不带坐标的纯文本。
+
+框词优化：默认使用 `psm=6`（单块文本，速度更快）；大图并行分条时会向上下扩展重叠区域，并按“中心点归属”只保留该条核心区的框，避免切词和重复框。句子框在没有句尾标点时也会按行距或每 4 行切分，不再合并成整屏一个大框。实测 444 词的双栏整屏召回 444/444，真实截图 53 词全部唯一。
 
 ### 性能
 
@@ -148,6 +152,8 @@ powershell -ExecutionPolicy Bypass -File .\tools\package_runtime.ps1 -UpdateMeta
 | `max_side` | OCR 前最长边上限，控制单帧耗时 | `null` |
 | `workers` | 并行 worker 数，`0` 表示大图自动并行 | `0` |
 | `diff` | 帧差分：只对变化区域重新 OCR | `true` |
+| `continuous` | 后台持续捕获屏幕 | `true` |
+| `capture_fps` | 持续捕获帧率 | `5.0` |
 | `hotkey` | 全局快捷键：开始/结束翻译 | `F8` |
 | `openai_model` | OpenAI 翻译用的模型名 | `gpt-4o-mini` |
 

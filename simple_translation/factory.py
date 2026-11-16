@@ -7,6 +7,7 @@ from typing import Optional
 from .display import ConsoleDisplay, Display, TkCoverDisplay, TkOverlayDisplay
 from .models import ScreenRegion
 from .screen_reader import (
+    ContinuousScreenReader,
     DemoScreenReader,
     RapidOcrScreenReader,
     ScreenReader,
@@ -21,16 +22,21 @@ def build_reader(
     max_side: Optional[int] = None,
     workers: int = 0,
     diff: bool = True,
+    continuous: bool = False,
+    capture_fps: float = 5.0,
 ) -> ScreenReader:
     if kind == "demo":
         return DemoScreenReader()
     if kind == "tesseract":
-        return TesseractScreenReader(
+        reader = TesseractScreenReader(
             region=region,
             max_side=max_side,
             workers=workers,
             diff=diff,
         )
+        if continuous:
+            return ContinuousScreenReader(reader, fps=capture_fps)
+        return reader
     if kind == "rapidocr":
         return RapidOcrScreenReader(region=region)
     raise ValueError(f"未知的读取后端：{kind}")

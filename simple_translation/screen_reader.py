@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import threading
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
@@ -42,6 +43,9 @@ class ScreenReader(ABC):
     def read_lines(self) -> list[TextBox]:
         """返回行级文本框；默认退化为句子级。"""
         return self.read_boxes()
+
+    def close(self) -> None:
+        """释放读取资源；默认无操作。"""
 
 
 class DemoScreenReader(ScreenReader):
@@ -183,7 +187,7 @@ class TesseractScreenReader(ScreenReader):
         self,
         region: Optional[ScreenRegion] = None,
         lang: str = "eng",
-        psm: Optional[int] = None,
+        psm: Optional[int] = 6,
         min_conf: float = 0.0,
         max_side: Optional[int] = None,
         workers: int = 0,
@@ -203,6 +207,7 @@ class TesseractScreenReader(ScreenReader):
         self._prev_thumb = None
         self._cache_words = []
         self._cache_lines = []
+        self._cache_line_boxes = None
         self.last_origin = (0, 0)
         self._last_image = None
 
@@ -340,14 +345,21 @@ class TesseractScreenReader(ScreenReader):
         )
 
     # ---- OCR（单次 / 并行） ----
-    def _ocr_strip(self, strip, top_offset: int):
+    def _ocr_strip(self, strip, top_offset: int, core_top: int, core_bottom: int):
         api = self._worker_api()
         api.SetImage(strip)
         api.Recognize()
-        return (
-            self._tesserocr_words(api, top_offset),
-            self._tesserocr_lines(api, top_offset),
-        )
+        words = self._tesserocr_words(api, top_offset)
+        lines = self._tesserocr_lines(api, top_offset)
+        words = [
+            word for word in words
+            if core_top <= word["top"] + word["height"] / 2 < core_bottom
+        ]
+        lines = [
+            line for line in lines
+            if core_top <= line["top"] + line["height"] / 2 < core_bottom
+        ]
+        return words, lines
 
     def _ocr_image_single(self, image, scale):
         api = self._tesserocr()
@@ -366,14 +378,19 @@ class TesseractScreenReader(ScreenReader):
 
         height = image.height
         bounds = [(i * height // workers, (i + 1) * height // workers) for i in range(workers)]
+        overlap = max(8, min(64, height // workers // 6))
         words = []
         lines = []
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = [
                 executor.submit(
                     self._ocr_strip,
-                    image.crop((0, top, image.width, bottom)),
+                    image.crop(
+                        (0, max(0, top - overlap), image.width, min(height, bottom + overlap))
+                    ),
+                    max(0, top - overlap),
                     top,
+                    bottom,
                 )
                 for top, bottom in bounds
             ]
@@ -509,6 +526,7 @@ class TesseractScreenReader(ScreenReader):
         if not self.diff:
             resized, scale = self._resize_for_ocr(image)
             words, lines = self._ocr_image(resized, scale)
+            self._cache_line_boxes = None
             words.sort(key=lambda w: (w["top"], w["left"]))
             lines.sort(key=lambda line: (line["top"], line["left"]))
             return words, lines
@@ -517,6 +535,7 @@ class TesseractScreenReader(ScreenReader):
         if self._prev_thumb is None:
             resized, scale = self._resize_for_ocr(image)
             words, lines = self._ocr_image(resized, scale)
+            self._cache_line_boxes = None
         else:
             regions = self._changed_regions(thumb, image.size)
             if not regions:
@@ -524,6 +543,7 @@ class TesseractScreenReader(ScreenReader):
             elif regions == "FULL":
                 resized, scale = self._resize_for_ocr(image)
                 words, lines = self._ocr_image(resized, scale)
+                self._cache_line_boxes = None
             else:
                 new_words = []
                 new_lines = []
@@ -533,6 +553,7 @@ class TesseractScreenReader(ScreenReader):
                     new_lines.extend(region_lines)
                 words = [w for w in self._cache_words if not self._intersects_any(w, regions)] + new_words
                 lines = [line for line in self._cache_lines if not self._intersects_any(line, regions)] + new_lines
+                self._cache_line_boxes = None
 
         words.sort(key=lambda w: (w["top"], w["left"]))
         lines.sort(key=lambda line: (line["top"], line["left"]))
@@ -566,6 +587,8 @@ class TesseractScreenReader(ScreenReader):
     def read_lines(self) -> list[TextBox]:
         """返回行级文本框，用于按原文位置覆盖显示。"""
         _, lines = self._read_full()
+        if self._cache_line_boxes is not None:
+            return list(self._cache_line_boxes)
         boxes = []
         for line in lines:
             background, foreground = _sample_box_colors(
@@ -587,7 +610,100 @@ class TesseractScreenReader(ScreenReader):
                     foreground=foreground,
                 )
             )
+        self._cache_line_boxes = boxes
         return boxes
+
+
+class ContinuousScreenReader(ScreenReader):
+    """后台持续捕获屏幕，只向上层提供最新的 OCR 结果。
+
+    捕获线程按 fps 循环调用内部读取器；内部读取器自带帧差分，
+    屏幕未变化时只做截图 + 缩略图比较，不重复 OCR。
+    """
+
+    def __init__(self, inner: ScreenReader, fps: float = 5.0):
+        self.inner = inner
+        self.fps = max(0.5, min(30.0, float(fps)))
+        self._latest_lines = []
+        self._latest_boxes = []
+        self._latest_text = ""
+        self._latest_origin = (0, 0)
+        self._lock = threading.Lock()
+        self._ready = threading.Event()
+        self._stop = threading.Event()
+        self._thread = None
+
+    def start(self) -> None:
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(
+            target=self._loop, name="screen-monitor", daemon=True
+        )
+        self._thread.start()
+
+    def _loop(self) -> None:
+        interval = 1.0 / self.fps
+        while not self._stop.is_set():
+            try:
+                lines = self.inner.read_lines()
+                boxes = _merge_lines_into_sentences(
+                    [
+                        {
+                            "text": line.text,
+                            "left": line.left,
+                            "top": line.top,
+                            "width": line.width,
+                            "height": line.height,
+                            "confidence": line.confidence or 0.0,
+                        }
+                        for line in lines
+                    ]
+                )
+                text = "\n".join(line.text for line in lines)
+                origin = getattr(self.inner, "last_origin", (0, 0))
+                with self._lock:
+                    self._latest_lines = lines
+                    self._latest_boxes = boxes
+                    self._latest_text = text
+                    self._latest_origin = origin
+                self._ready.set()
+            except Exception:
+                pass
+            self._stop.wait(interval)
+
+    @property
+    def last_origin(self):
+        with self._lock:
+            return self._latest_origin
+
+    def _wait_ready(self) -> None:
+        self.start()
+        self._ready.wait(15.0)
+
+    def read(self) -> str:
+        self._wait_ready()
+        with self._lock:
+            return self._latest_text
+
+    def read_lines(self) -> list[TextBox]:
+        self._wait_ready()
+        with self._lock:
+            return list(self._latest_lines)
+
+    def read_boxes(self) -> list[TextBox]:
+        self._wait_ready()
+        with self._lock:
+            return list(self._latest_boxes)
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=3)
+            self._thread = None
+        inner_close = getattr(self.inner, "close", None)
+        if callable(inner_close):
+            inner_close()
 
 
 class RapidOcrScreenReader(ScreenReader):
@@ -687,7 +803,15 @@ def _merge_lines_into_sentences(lines: list[dict]) -> list[TextBox]:
     sentences = []
     for line in lines:
         text = line["text"]
-        if sentences and not sentences[-1]["ended"]:
+        start_new = not sentences or sentences[-1]["ended"]
+        if sentences and not start_new:
+            previous = sentences[-1]["lines"][-1]
+            gap = line["top"] - (previous["top"] + previous["height"])
+            if gap > max(12, previous["height"] * 1.6):
+                start_new = True
+            elif len(sentences[-1]["lines"]) >= 4:
+                start_new = True
+        if not start_new:
             sentences[-1]["text"] += " " + text
             sentences[-1]["lines"].append(line)
         else:

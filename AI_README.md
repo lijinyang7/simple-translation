@@ -24,7 +24,7 @@
 | `run_ui.cmd` | Windows 双击启动 UI | `python main.py --ui` |
 | `simple_translation/models.py` | 数据模型 | `ScreenRegion`, `TextBox`, `TranslationResult` |
 | `simple_translation/config.py` | 配置加载 | `AppConfig`, `load_config()`, `save_default_config()` |
-| `simple_translation/screen_reader.py` | 第一部分：截屏 + OCR + 帧差分 | `ScreenReader`, `TesseractScreenReader`, `RapidOcrScreenReader`, `DemoScreenReader` |
+| `simple_translation/screen_reader.py` | 第一部分：持续截屏 + OCR + 帧差分 | `ScreenReader`, `ContinuousScreenReader`, `TesseractScreenReader`, `RapidOcrScreenReader`, `DemoScreenReader` |
 | `simple_translation/translator.py` | 第二部分：翻译 | `Translator`, `ZhtransTranslator`, `DemoTranslator`, `OpenAiTranslator` |
 | `zhtrans/` | 随仓库附带的离线英译中引擎（纯标准库） | `zhtrans.translate_text`, `TranslationEngine`, `MTranClient` |
 | `simple_translation/display.py` | 第三部分：显示 | `Display`, `ConsoleDisplay`, `TkOverlayDisplay` |
@@ -131,6 +131,8 @@ TranslationResult(source_text, translated_text, source_lang, target_lang)
 | `max_side` | `null` | OCR 前最长边上限，用于控制耗时 |
 | `workers` | `0` | 并行 worker 数；`0` 表示大图自动 |
 | `diff` | `true` | 帧差分：只对变化区域重新 OCR |
+| `continuous` | `true` | 后台持续捕获屏幕 |
+| `capture_fps` | `5.0` | 持续捕获帧率 |
 | `hotkey` | `"F8"` | 全局快捷键，开始/结束翻译 |
 | `openai_model` | `"gpt-4o-mini"` | OpenAI 翻译模型名 |
 
@@ -152,11 +154,14 @@ python main.py --reader tesseract --translator openai --display overlay
 - `TesseractScreenReader.read()` / `read_words()` / `read_boxes()` 都经过 `_read_full()`，共享同一帧差分缓存；不要假设三者是三次独立识别。
 - 帧差分状态是**实例级**的：一个 `TesseractScreenReader` 只对应一个连续屏幕流。切换屏幕/区域或需要强制全量识别时，新建实例或设置 `diff=False`。
 - 差分流程：160px 灰度缩略图 → 阈值 24 → 连通区域 + 边距/合并 → 只对变化区域 OCR；变化超过 50% 或合并区域超过 60% 时回退全屏 OCR。
+- Tesseract 默认 `psm=6`（`SINGLE_BLOCK`）；大图并行分条会向相邻条带扩展重叠区，但只保留中心点落在本条核心区的词/行，避免边界切词和重复框。`read_lines()` 返回行级框，`read_boxes()` 按标点、行距或每 4 行切分句子。
 - `workers > 1` 使用线程池 + 每线程独立 tesserocr API（`threading.local`）；`PyTessBaseAPI` 不能跨线程共享。
 - 句子分组规则：把连续行合并，直到某行以 `.` `!` `?` 结尾。界面文字通常没有句尾标点，因此可能合并成一个很大的框——这是已知行为，不是 bug。
 - `RapidOcrScreenReader` 是独立后端，只实现 `read()`；在部分机器上比 Tesseract 慢，默认不启用。
 - `zhtrans/` 是随仓库附带的纯标准库英译中引擎；真正翻译由本地 MTranServer 完成。
+- 行框背景色只在 OCR 结果变化时采样并缓存；静态帧不再重复做颜色统计（实测静态帧约 42ms → 2ms，CPU 约 24% → 1.6%）。
 - `GlobalHotkey` 用 Windows `RegisterHotKey` 注册系统级热键；回调只向 UI 队列投递事件，Tk 操作始终留在主线程。UI 收到后切换开始/停止，默认 `F8`。
+- `ContinuousScreenReader` 在后台线程按 `capture_fps` 循环调用内部读取器；内部 `TesseractScreenReader` 用帧差分跳过未变化画面。上层 `read/read_lines/read_boxes` 只取最新结果，不再每次调用都抓图。`Pipeline.close()` 负责停止捕获线程并关闭翻译/显示资源。
 - `vendor/`（Node 运行时 + 英译中模型，约 380MB）不入库；默认找项目根目录下的 `vendor/`，也可用 `ZHTRANS_VENDOR` 环境变量指向已有目录。
 - 首次 `ZhtransTranslator.translate()` 会启动本地服务并加载模型（约 15s），之后复用连接/词典/缓存，通常 8–200ms。
 - Windows 下 `tesserocr` 需要 tessdata：代码会依次查 `TESSDATA_PREFIX`、`%ProgramFiles%\Tesseract-OCR\tessdata`。

@@ -113,7 +113,7 @@ class TranslationApp:
 
         tk.Label(
             outer,
-            text="屏幕取词 · 原位覆盖",
+            text="持续读取屏幕 · 原位覆盖",
             bg=BG,
             fg=MUTED,
             font=("Microsoft YaHei UI", 10),
@@ -253,6 +253,8 @@ class TranslationApp:
             self.config.max_side,
             self.config.workers,
             self.config.diff,
+            self.config.continuous,
+            self.config.capture_fps,
         )
         translator = build_translator(self.config.translator, self.config.openai_model)
         return Pipeline(
@@ -321,6 +323,7 @@ class TranslationApp:
                         return
                     time.sleep(min(0.1, max(0.0, deadline - time.monotonic())))
         finally:
+            pipeline.close()
             self.queue.put(("stopped", "", ""))
 
     def _stop(self) -> None:
@@ -357,6 +360,8 @@ class TranslationApp:
                 self.queue.put(("once_done", "", ""))
             except Exception as exc:
                 self.queue.put(("error", str(exc), ""))
+            finally:
+                pipeline.close()
 
         threading.Thread(target=work, daemon=True).start()
 

@@ -40,6 +40,8 @@ def main(argv: list[str] | None = None) -> int:
         config.max_side,
         config.workers,
         config.diff,
+        config.continuous,
+        config.capture_fps,
     )
     translator = build_translator(translator_kind, config.openai_model)
     display = build_display(args.display or config.display)

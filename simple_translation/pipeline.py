@@ -55,11 +55,20 @@ class Pipeline:
             return self.run_boxes_once()
         return self.run_once()
 
+    def close(self) -> None:
+        reader_close = getattr(self.reader, "close", None)
+        if callable(reader_close):
+            reader_close()
+        translator_close = getattr(self.translator, "close", None)
+        if callable(translator_close):
+            translator_close()
+        self.display.close()
+
     def run(self, interval: float = 2.0, once: bool = False) -> None:
         if once:
             self._step_once()
             self.display.wait()
-            self.display.close()
+            self.close()
             return
 
         try:
@@ -69,4 +78,4 @@ class Pipeline:
         except KeyboardInterrupt:
             pass
         finally:
-            self.display.close()
+            self.close()
